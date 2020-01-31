@@ -2,15 +2,12 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"path"
 )
 
 const JSONFILE = "data.dat"
-
-var ErrFileNotFound = fmt.Errorf("file not found")
 
 type JSON struct {
 	PATH  []string          `json:"path"`
@@ -25,16 +22,28 @@ func newJSON() *JSON {
 	}
 }
 
-func (j *JSON) AddPath(path string) error {
-	return nil
+func (j *JSON) AddPath(path string) {
+	j.PATH = append(j.PATH, path)
 }
 
-func (j *JSON) SetEnvi(name, value string) error {
-	return nil
+func (j *JSON) DelPath(pos uint) {
+	j.PATH = append(j.PATH[:pos], j.PATH[pos+1:]...)
 }
 
-func (j *JSON) SetAlias(name, value string) error {
-	return nil
+func (j *JSON) SetEnv(name, value string) {
+	if len(value) == 0 {
+		delete(j.Envi, name)
+	} else {
+		j.Envi[name] = value
+	}
+}
+
+func (j *JSON) SetAlias(name, value string) {
+	if len(value) == 0 {
+		delete(j.Alias, name)
+	} else {
+		j.Alias[name] = value
+	}
 }
 
 func (j *JSON) Decode(r io.Reader) error {
@@ -57,7 +66,7 @@ func LoadJSON() (*JSON, error) {
 		}
 		return json, nil
 	}
-	return nil, ErrFileNotFound
+	return newJSON(), nil
 }
 
 func WriteJSON(json *JSON) error {
@@ -65,5 +74,5 @@ func WriteJSON(json *JSON) error {
 	if err := json.Encode(buffer); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path.Join(GetRootDir(), JSONFILE), buffer.Bytes(), 0x755)
+	return ioutil.WriteFile(path.Join(GetRootDir(), JSONFILE), buffer.Bytes(), 0x0755)
 }

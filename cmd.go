@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -17,7 +18,7 @@ type Cmd struct {
 
 type Handler interface {
 	help() string
-	handle([]string) (string, error)
+	handle(*JSON, []string) (string, error)
 }
 
 func addCommand(cmd string, args uint32, handle Handler) {
@@ -47,7 +48,7 @@ Developers:
 type InitCmd struct {
 }
 
-func (cmd *InitCmd) handle(args []string) (string, error) {
+func (cmd *InitCmd) handle(json *JSON, args []string) (string, error) {
 	return "", nil
 }
 
@@ -57,8 +58,13 @@ func (_ *InitCmd) help() string {
 
 type AddCmd struct{}
 
-func (cmd *AddCmd) handle(args []string) (string, error) {
-	return "", nil
+func (cmd *AddCmd) handle(json *JSON, args []string) (string, error) {
+	if len(args) == 1 {
+		json.AddPath(RealDir(strings.TrimSpace(args[0])))
+	} else {
+		json.SetEnv(strings.TrimSpace(args[0]), RealDir(strings.TrimSpace(args[1])))
+	}
+	return fmt.Sprint(json), nil
 }
 
 func (_ *AddCmd) help() string {
@@ -68,7 +74,10 @@ func (_ *AddCmd) help() string {
 type DelCmd struct {
 }
 
-func (cmd *DelCmd) handle(args []string) (string, error) {
+func (cmd *DelCmd) handle(json *JSON, args []string) (string, error) {
+	for _, name := range args {
+		json.SetEnv(strings.TrimSpace(name), "")
+	}
 	return "", nil
 }
 
@@ -79,8 +88,27 @@ func (_ *DelCmd) help() string {
 type ViewCmd struct {
 }
 
-func (cmd *ViewCmd) handle(args []string) (string, error) {
-	return "", nil
+func (cmd *ViewCmd) handle(json *JSON, args []string) (string, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	if len(json.PATH) > 0 {
+		buffer.WriteString("PATH:\n")
+		for i, dir := range json.PATH {
+			buffer.WriteString(fmt.Sprint("\t", i, ":", dir, "\t"))
+		}
+	}
+
+	for name, value := range json.Envi {
+		buffer.WriteString(fmt.Sprint(name, ":", value, "\n"))
+	}
+
+	if len(json.Alias) > 0 {
+		buffer.WriteString("\nAlias:\n")
+		for name, value := range json.Alias {
+			buffer.WriteString(fmt.Sprint("\t", name, ":", value, "\t"))
+		}
+	}
+
+	return buffer.String(), nil
 }
 
 func (_ *ViewCmd) help() string {
@@ -90,7 +118,7 @@ func (_ *ViewCmd) help() string {
 type AliasCmd struct {
 }
 
-func (cmd *AliasCmd) handle(args []string) (string, error) {
+func (cmd *AliasCmd) handle(json *JSON, args []string) (string, error) {
 	return "", nil
 }
 

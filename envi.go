@@ -7,8 +7,18 @@ import (
 
 func parseCommand(args []string) (string, error) {
 	if cmd, ok := cmds[args[0]]; ok {
-		if cmd.Args <= uint32(len(args)) {
-			return cmd.Handle.handle(args[1:])
+		if cmd.Args < uint32(len(args)) {
+			json, err := LoadJSON()
+			if err != nil {
+				return "", err
+			}
+
+			out, err := cmd.Handle.handle(json, args[1:])
+			if err != nil {
+				return "", err
+			}
+
+			return out, WriteJSON(json)
 		}
 		return "", fmt.Errorf("Number of parameters does not match")
 	}
